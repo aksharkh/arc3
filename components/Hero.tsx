@@ -1,134 +1,89 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
-import { motion, useMotionValueEvent, useScroll, useTransform } from "motion/react";
-import { EASE, PillButton, RevealLines } from "./ui";
-import { useLoaded } from "@/lib/store";
+import { animate, motion, useMotionValueEvent, useScroll, useTransform } from "motion/react";
+import { lerpRange, EASE } from "./ui";
 
-const HeroScene = dynamic(() => import("./scene/Scenes").then((m) => m.HeroScene), { ssr: false });
-
-const REGIMES = [
-  "ISO 27001:2022",
-  "SOC 2 Type II",
-  "DPDP Act 2023",
-  "SEBI CSCRF",
-  "RBI IT Governance",
-  "GDPR",
-  "NIST CSF 2.0",
-  "PCI DSS 4.0",
-  "ISO 42001",
-  "DORA",
-  "NIS2",
-  "HIPAA",
-];
+const HeroCanvas = dynamic(() => import("./scene/Canvases").then((m) => m.HeroCanvas), { ssr: false });
 
 export default function Hero() {
   const ref = useRef<HTMLElement>(null);
-  const loaded = useLoaded();
   const progress = useRef(0);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
+  const fade = useRef(1);
+
+  useEffect(() => {
+    const c = animate(1, 0, { duration: 2.6, ease: "easeOut", onUpdate: (v) => (fade.current = v) });
+    return () => c.stop();
+  }, []);
+
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
   useMotionValueEvent(scrollYProgress, "change", (v) => (progress.current = v));
 
-  const textY = useTransform(scrollYProgress, [0, 1], ["0%", "-35%"]);
-  const textO = useTransform(scrollYProgress, [0, 0.6], [1, 0]);
+  const introOpacity = useTransform(scrollYProgress, (v) => lerpRange(v, [0, 0.22], [1, 0]));
+  const introY = useTransform(scrollYProgress, (v) => lerpRange(v, [0, 0.22], [0, -40]));
+  const outroOpacity = useTransform(scrollYProgress, (v) => lerpRange(v, [0.66, 0.84], [0, 1]));
+  const outroScale = useTransform(scrollYProgress, (v) => lerpRange(v, [0.62, 0.95], [0.92, 1]));
+  const outroSpacing = useTransform(scrollYProgress, (v) => `${lerpRange(v, [0.62, 0.95], [0.02, -0.03])}em`);
 
   return (
-    <section ref={ref} id="top" className="relative h-[100svh] min-h-[640px] overflow-hidden bg-ink">
-      <HeroScene progress={progress} intro={loaded} />
+    <section ref={ref} id="top" data-theme="dark" className="relative h-[280vh] bg-ink">
+      <div className="sticky top-0 h-[100svh] overflow-hidden">
+        <HeroCanvas progress={progress} fade={fade} />
 
-      {/* legibility wash on small screens */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink via-ink/30 to-transparent md:hidden" />
-
-      <motion.div
-        style={{ y: textY, opacity: textO }}
-        className="pointer-events-none relative z-10 mx-auto flex h-full max-w-[1600px] flex-col justify-end px-6 pb-36 md:justify-center md:px-10 md:pb-0"
-      >
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={loaded ? { opacity: 1 } : undefined}
-          transition={{ duration: 1, delay: 0.3 }}
-          className="label mb-8 flex items-center gap-4 text-pearl/60"
+          style={{ opacity: introOpacity, y: introY }}
+          className="pointer-events-none absolute inset-x-0 bottom-0 mx-auto flex max-w-[1440px] flex-col gap-10 px-6 pb-10 md:flex-row md:items-end md:justify-between md:px-12 md:pb-14"
         >
-          <span className="h-px w-12 bg-gold" />
-          GRC Solutions — Advisory &amp; Assurance
+          <h1 className="display text-[clamp(2.1rem,4.6vw,4.5rem)]">
+            {["Governance, risk", "and compliance —", "engineered as one."].map((l, i) => (
+              <span key={l} className="block overflow-hidden pb-[0.08em]">
+                <motion.span
+                  className={`block ${i === 2 ? "text-bone/55" : ""}`}
+                  initial={{ y: "105%" }}
+                  animate={{ y: 0 }}
+                  transition={{ duration: 1.6, ease: EASE, delay: 0.9 + i * 0.1 }}
+                >
+                  {l}
+                </motion.span>
+              </span>
+            ))}
+          </h1>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1.6, delay: 1.6 }}
+            className="flex max-w-[19rem] flex-col gap-8 md:items-end md:text-right"
+          >
+            <p className="text-[14px] leading-relaxed text-bone/60">
+              Independent GRC advisory for boards, risk leaders and the regulated enterprises they steward.
+            </p>
+            <span className="eyebrow flex items-center gap-4 !text-[10px] text-bone/50">
+              Scroll to enter
+              <span className="relative block h-8 w-px overflow-hidden bg-bone/15">
+                <motion.span
+                  className="absolute inset-x-0 top-0 h-3 bg-gold"
+                  animate={{ y: ["-100%", "300%"] }}
+                  transition={{ duration: 2.2, repeat: Infinity, ease: [0.65, 0, 0.35, 1] }}
+                />
+              </span>
+            </span>
+          </motion.div>
         </motion.div>
 
-        <h1 className="text-[clamp(3.2rem,9.4vw,10.5rem)] font-light leading-[0.9] tracking-[-0.045em]">
-          <RevealLines
-            delay={0.35}
-            stagger={0.12}
-            lines={[
-              <span key="a">Control,</span>,
-              <span key="b" className="gold-text font-serif font-normal italic tracking-[-0.02em]">
-                engineered.
-              </span>,
-            ]}
-          />
-        </h1>
-
-        <div className="pointer-events-auto mt-10 flex max-w-xl flex-col gap-8 md:mt-12">
-          <RevealLines
-            delay={0.75}
-            stagger={0.05}
-            className="text-[15px] leading-relaxed text-pearl/70 md:text-[17px]"
-            lines={[
-              "Governance that decides. Risk measured before it is felt.",
-              "Compliance that holds when it is tested — unified into",
-              "one living architecture for regulated enterprises.",
-            ]}
-          />
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={loaded ? { opacity: 1, y: 0 } : undefined}
-            transition={{ duration: 1, ease: EASE, delay: 1.1 }}
-            className="flex flex-wrap items-center gap-3"
-          >
-            <PillButton href="#contact">Book a consultation</PillButton>
-            <PillButton href="#pillars" variant="ghost">
-              Explore the system
-            </PillButton>
-          </motion.div>
-        </div>
-      </motion.div>
-
-      {/* bottom rail */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={loaded ? { opacity: 1 } : undefined}
-        transition={{ duration: 1.2, delay: 1.3 }}
-        className="absolute inset-x-0 bottom-0 z-10 border-t border-white/10 bg-ink/30 backdrop-blur-md"
-      >
-        <div className="flex items-center">
-          <div className="label hidden shrink-0 items-center gap-3 border-r border-white/10 px-10 py-5 text-pearl/50 md:flex">
-            <motion.span
-              className="block h-6 w-px origin-top bg-gold"
-              animate={{ scaleY: [0, 1, 0], y: [0, 0, 12] }}
-              transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
-            />
-            Scroll
-          </div>
-          <div className="relative flex-1 overflow-hidden py-5 [mask-image:linear-gradient(90deg,transparent,#000_8%,#000_92%,transparent)]">
-            <div className="marquee" style={{ ["--dur" as string]: "55s" }}>
-              {[0, 1].map((k) => (
-                <div key={k} className="flex shrink-0 items-center">
-                  {REGIMES.map((r) => (
-                    <span key={r + k} className="label flex items-center gap-10 pr-10 text-pearl/55">
-                      {r}
-                      <svg viewBox="0 0 10 10" className="h-2 w-2 text-gold" aria-hidden>
-                        <path d="M5 0 L10 5 L5 10 L0 5Z" fill="currentColor" />
-                      </svg>
-                    </span>
-                  ))}
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="label hidden shrink-0 border-l border-white/10 px-10 py-5 text-pearl/50 lg:block">
-            Mumbai · London · Dubai
-          </div>
-        </div>
-      </motion.div>
+        {/* What you arrive at once you pass through the mark */}
+        <motion.div
+          style={{ opacity: outroOpacity, scale: outroScale }}
+          className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-6 text-center"
+        >
+          <p className="eyebrow mb-8 text-gold">TripleArc GRC Solutions</p>
+          <motion.p style={{ letterSpacing: outroSpacing }} className="display max-w-4xl text-[clamp(2.4rem,6vw,6rem)]">
+            Three disciplines.
+            <br />
+            <span className="text-bone/55">One structure.</span>
+          </motion.p>
+        </motion.div>
+      </div>
     </section>
   );
 }

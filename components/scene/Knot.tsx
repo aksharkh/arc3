@@ -7,111 +7,98 @@ import { triquetraPoints } from "@/lib/triquetra";
 import { pointer } from "@/lib/store";
 
 /**
- * A flat metal band swept along the triquetra loop — the brand mark as an
- * object. Rectangular section, mitred at the three tips so they stay sharp.
+ * The mark as a polished band: an elliptical section swept along the
+ * triquetra loop, widened at the tips so they stay crisp.
  */
-function ribbonGeometry(width = 0.15, thickness = 0.06) {
-  const pts = triquetraPoints(180, 0.34, 0.19).map((p) => new THREE.Vector3(...p));
+function bandGeometry(width = 0.13, thickness = 0.055, seg = 28) {
+  const pts = triquetraPoints(220, 0.34, 0.17).map((p) => new THREE.Vector3(...p));
   const N = pts.length;
   const Z = new THREE.Vector3(0, 0, 1);
-  const pos: number[] = [];
-  const nor: number[] = [];
+  const pos = new Float32Array(N * seg * 3);
+  const nor = new Float32Array(N * seg * 3);
   const idx: number[] = [];
+  const a = width / 2;
+  const b = thickness / 2;
 
-  const rings: { c: THREE.Vector3[]; n: THREE.Vector3[] }[] = [];
   for (let i = 0; i < N; i++) {
     const P = pts[i];
     const tin = P.clone().sub(pts[(i - 1 + N) % N]).normalize();
     const tout = pts[(i + 1) % N].clone().sub(P).normalize();
     const T = tin.clone().add(tout).normalize();
-    const miter = 1 / Math.max(T.dot(tout), 0.3);
+    const miter = Math.min(1 / Math.max(T.dot(tout), 0.3), 2.2);
     const B = T.clone().cross(Z).normalize();
     const U = B.clone().cross(T).normalize();
-    const hw = (width / 2) * Math.min(miter, 2.4);
-    const hh = thickness / 2;
-    const c0 = P.clone().addScaledVector(B, hw).addScaledVector(U, hh);
-    const c1 = P.clone().addScaledVector(B, -hw).addScaledVector(U, hh);
-    const c2 = P.clone().addScaledVector(B, -hw).addScaledVector(U, -hh);
-    const c3 = P.clone().addScaledVector(B, hw).addScaledVector(U, -hh);
-    rings.push({ c: [c0, c1, c2, c3], n: [U, B.clone().negate(), U.clone().negate(), B] });
-  }
-
-  // 4 faces, each a strip of (a, b) pairs with its own flat normal.
-  for (let f = 0; f < 4; f++) {
-    const base = pos.length / 3;
-    for (let i = 0; i < N; i++) {
-      const { c, n } = rings[i];
-      const a = c[f];
-      const b = c[(f + 1) % 4];
-      pos.push(a.x, a.y, a.z, b.x, b.y, b.z);
-      nor.push(n[f].x, n[f].y, n[f].z, n[f].x, n[f].y, n[f].z);
-    }
-    for (let i = 0; i < N; i++) {
-      const j = (i + 1) % N;
-      const ai = base + i * 2, bi = ai + 1;
-      const aj = base + j * 2, bj = aj + 1;
-      idx.push(ai, bj, bi, ai, aj, bj);
+    for (let j = 0; j < seg; j++) {
+      const th = (j / seg) * Math.PI * 2;
+      const c = Math.cos(th);
+      const s = Math.sin(th);
+      const k = (i * seg + j) * 3;
+      const v = P.clone().addScaledVector(B, a * miter * c).addScaledVector(U, b * s);
+      const n = B.clone().multiplyScalar(b * c).addScaledVector(U, a * miter * s).normalize();
+      pos[k] = v.x; pos[k + 1] = v.y; pos[k + 2] = v.z;
+      nor[k] = n.x; nor[k + 1] = n.y; nor[k + 2] = n.z;
     }
   }
-
+  for (let i = 0; i < N; i++) {
+    const i2 = (i + 1) % N;
+    for (let j = 0; j < seg; j++) {
+      const j2 = (j + 1) % seg;
+      const p00 = i * seg + j, p01 = i * seg + j2, p10 = i2 * seg + j, p11 = i2 * seg + j2;
+      idx.push(p00, p10, p11, p00, p11, p01);
+    }
+  }
   const g = new THREE.BufferGeometry();
-  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
-  g.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3));
+  g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  g.setAttribute("normal", new THREE.BufferAttribute(nor, 3));
   g.setIndex(idx);
   return g;
 }
 
-type Props = {
-  progress?: { current: number };
-  intro?: boolean;
-};
+const ease = (x: number) => 1 - Math.pow(1 - x, 4);
 
-export default function Knot({ progress, intro = true }: Props) {
-  const group = useRef<THREE.Group>(null);
+export default function Knot({ progress }: { progress: { current: number } }) {
+  const outer = useRef<THREE.Group>(null);
   const inner = useRef<THREE.Group>(null);
-  const geo = useMemo(() => ribbonGeometry(), []);
-  const viewport = useThree((s) => s.viewport);
-  const t0 = useRef<number | null>(null);
+  const geo = useMemo(() => bandGeometry(), []);
+  const { viewport } = useThree();
+  const born = useRef<number | null>(null);
 
-  const wide = viewport.aspect > 1.05;
-  const baseX = wide ? viewport.width * 0.2 : 0;
-  const baseY = wide ? 0 : viewport.height * 0.16;
-  const baseS = wide ? Math.min(viewport.height * 0.27, viewport.width * 0.16) : viewport.width * 0.3;
+  // Size to the smaller of height/width so it sits well on phones too.
+  const base = Math.min((viewport.height * 0.44) / 1.5, (viewport.width * 0.62) / 1.73);
 
   useFrame((state, dt) => {
-    const g = group.current;
-    const i = inner.current;
-    if (!g || !i) return;
+    const o = outer.current;
+    const n = inner.current;
+    if (!o || !n) return;
     const time = state.clock.elapsedTime;
-    if (intro && t0.current === null) t0.current = time;
-    const k = intro ? Math.min((time - (t0.current ?? time)) / 2.4, 1) : 0;
-    const e = 1 - Math.pow(1 - k, 4);
-    const p = progress?.current ?? 0;
+    if (born.current === null) born.current = time;
+    const intro = ease(Math.min((time - born.current) / 3.2, 1));
+    const p = progress.current;
+    const fly = p * p * (3 - 2 * p); // smoothstep
+    const idle = 1 - fly;
 
-    // Intro: arrive from depth, unwinding a half turn.
-    const s = baseS * (0.55 + 0.45 * e) * (1 - p * 0.25);
-    g.scale.setScalar(s);
-    g.position.set(baseX - p * (wide ? viewport.width * 0.2 : 0), baseY + p * viewport.height * 0.35, -2 * (1 - e));
+    // Fly the camera through the central opening: forward + slight growth.
+    o.scale.setScalar(base * (0.82 + 0.18 * intro) * (1 + fly * 0.8));
+    o.position.set(0, (0.1 * viewport.height - 0.25 * base) * idle, -1.2 * (1 - intro) + fly * 5.6);
 
-    const targetX = -pointer.y * 0.28 + Math.sin(time * 0.4) * 0.08;
-    const targetY = pointer.x * 0.45 + Math.sin(time * 0.25) * 0.35;
-    i.rotation.x = THREE.MathUtils.damp(i.rotation.x, targetX, 3, dt);
-    i.rotation.y = THREE.MathUtils.damp(i.rotation.y, targetY + (1 - e) * Math.PI, 3, dt);
-    i.rotation.z = Math.sin(time * 0.18) * 0.06 + p * 1.2;
-    i.position.y = Math.sin(time * 0.8) * 0.04;
+    const ry = (Math.sin(time * 0.3) * 0.32 + pointer.x * 0.22) * idle + (1 - intro) * 1.4;
+    const rx = (Math.sin(time * 0.23) * 0.1 - pointer.y * 0.14) * idle;
+    n.rotation.y = THREE.MathUtils.damp(n.rotation.y, ry, 2.5, dt);
+    n.rotation.x = THREE.MathUtils.damp(n.rotation.x, rx, 2.5, dt);
+    n.rotation.z = fly * 0.9;
   });
 
   return (
-    <group ref={group} scale={0.001}>
+    <group ref={outer} scale={0.001}>
       <group ref={inner}>
         <mesh geometry={geo}>
           <meshPhysicalMaterial
-            color="#e8b84a"
+            color="#e2b65b"
             metalness={1}
-            roughness={0.24}
-            clearcoat={0.5}
-            clearcoatRoughness={0.15}
-            envMapIntensity={1.9}
+            roughness={0.17}
+            clearcoat={0.4}
+            clearcoatRoughness={0.1}
+            envMapIntensity={1.5}
           />
         </mesh>
       </group>

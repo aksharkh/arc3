@@ -1,26 +1,20 @@
-import { Nav, Providers } from "@/components/chrome";
+import { Nav, Shell } from "@/components/Shell";
 import Hero from "@/components/Hero";
-import Manifesto from "@/components/Manifesto";
-import Pillars from "@/components/Pillars";
-import Services from "@/components/Services";
-import Method from "@/components/Method";
-import { Proof, Voices } from "@/components/Proof";
-import Closing from "@/components/Closing";
+import { Approach, Contact, Expand, Expertise, Footer, Statement } from "@/components/Sections";
 
 export default function Home() {
   return (
-    <Providers>
+    <Shell>
       <Nav />
       <main>
         <Hero />
-        <Manifesto />
-        <Pillars />
-        <Services />
-        <Method />
-        <Proof />
-        <Voices />
-        <Closing />
+        <Statement />
+        <Expand />
+        <Expertise />
+        <Approach />
+        <Contact />
       </main>
-    </Providers>
+      <Footer />
+    </Shell>
   );
 }
