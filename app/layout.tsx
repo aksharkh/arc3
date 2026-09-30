@@ -1,21 +1,21 @@
 import type { Metadata, Viewport } from "next";
-import { Montserrat } from "next/font/google";
+import { Manrope } from "next/font/google";
 import "./globals.css";
 
-const sans = Montserrat({
+const sans = Manrope({
   variable: "--font-sans",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
-  title: "TripleArc — Governance, Risk & Compliance",
+  title: "TripleArc — Governance, Risk & Compliance, made clear",
   description:
-    "TripleArc GRC Solutions unifies governance, risk and compliance into one structure for regulated enterprises.",
+    "TripleArc GRC Solutions unifies governance, risk and compliance into one clear structure for regulated enterprises.",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#07111f",
+  themeColor: "#f5f7fb",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

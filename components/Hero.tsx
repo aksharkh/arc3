@@ -1,88 +1,149 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import dynamic from "next/dynamic";
-import { animate, motion, useMotionValueEvent, useScroll, useTransform } from "motion/react";
-import { lerpRange, EASE } from "./ui";
+import { type ReactNode } from "react";
+import { motion, useMotionValue, useSpring, useTransform, type MotionValue } from "motion/react";
+import { BlurWords, Button, EASE, MARK, MARK_BOX } from "./ui";
+import { Controls, Heatmap, ScoreRing } from "./Widgets";
 
-const HeroCanvas = dynamic(() => import("./scene/Canvases").then((m) => m.HeroCanvas), { ssr: false });
+/** Concentric outlines of the mark, drawn in and turning slowly. */
+function Orbits() {
+  return (
+    <div className="pointer-events-none absolute left-1/2 top-[46%] h-[150vmin] w-[150vmin] -translate-x-1/2 -translate-y-1/2" aria-hidden>
+      {[1, 0.68, 0.42].map((s, i) => (
+        <motion.svg
+          key={s}
+          viewBox={MARK_BOX}
+          className="absolute inset-0 h-full w-full"
+          style={{ scale: s }}
+          animate={{ rotate: i % 2 ? -360 : 360 }}
+          transition={{ duration: 140 + i * 40, repeat: Infinity, ease: "linear" }}
+        >
+          <motion.path
+            d={MARK}
+            fill="none"
+            stroke="white"
+            strokeOpacity={0.1 + i * 0.05}
+            strokeWidth={0.006 / s}
+            initial={{ pathLength: 0 }}
+            animate={{ pathLength: 1 }}
+            transition={{ duration: 3, ease: EASE, delay: 0.3 + i * 0.25 }}
+          />
+        </motion.svg>
+      ))}
+    </div>
+  );
+}
+
+function Float({
+  children,
+  mx,
+  my,
+  depth,
+  delay,
+  className,
+}: {
+  children: ReactNode;
+  mx: MotionValue<number>;
+  my: MotionValue<number>;
+  depth: number;
+  delay: number;
+  className?: string;
+}) {
+  const x = useTransform(mx, (v) => v * depth);
+  const y = useTransform(my, (v) => v * depth);
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 120 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 70, damping: 16, delay }}
+      className={className}
+    >
+      <motion.div style={{ x, y }}>
+        <motion.div animate={{ y: [0, -8, 0] }} transition={{ duration: 6 + depth / 8, repeat: Infinity, ease: "easeInOut", delay }}>
+          {children}
+        </motion.div>
+      </motion.div>
+    </motion.div>
+  );
+}
 
 export default function Hero() {
-  const ref = useRef<HTMLElement>(null);
-  const progress = useRef(0);
-  const fade = useRef(1);
-
-  useEffect(() => {
-    const c = animate(1, 0, { duration: 2.6, ease: "easeOut", onUpdate: (v) => (fade.current = v) });
-    return () => c.stop();
-  }, []);
-
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
-  useMotionValueEvent(scrollYProgress, "change", (v) => (progress.current = v));
-
-  const introOpacity = useTransform(scrollYProgress, (v) => lerpRange(v, [0, 0.22], [1, 0]));
-  const introY = useTransform(scrollYProgress, (v) => lerpRange(v, [0, 0.22], [0, -40]));
-  const outroOpacity = useTransform(scrollYProgress, (v) => lerpRange(v, [0.66, 0.84], [0, 1]));
-  const outroScale = useTransform(scrollYProgress, (v) => lerpRange(v, [0.62, 0.95], [0.92, 1]));
-  const outroSpacing = useTransform(scrollYProgress, (v) => `${lerpRange(v, [0.62, 0.95], [0.02, -0.03])}em`);
+  const px = useMotionValue(0);
+  const py = useMotionValue(0);
+  const mx = useSpring(px, { stiffness: 60, damping: 18 });
+  const my = useSpring(py, { stiffness: 60, damping: 18 });
 
   return (
-    <section ref={ref} id="top" data-theme="dark" className="relative h-[280vh] bg-ink">
-      <div className="sticky top-0 h-[100svh] overflow-hidden">
-        <HeroCanvas progress={progress} fade={fade} />
+    <section id="top" className="px-3 pt-3 md:px-4 md:pt-4">
+      <div
+        onPointerMove={(e) => {
+          const r = e.currentTarget.getBoundingClientRect();
+          px.set((e.clientX - r.left) / r.width - 0.5);
+          py.set((e.clientY - r.top) / r.height - 0.5);
+        }}
+        className="relative overflow-hidden rounded-[32px] text-white md:rounded-[44px]"
+        style={{ background: "radial-gradient(120% 90% at 50% 0%, #2a6fe0 0%, #0f4cb1 32%, #0a2f78 68%, #081a3a 100%)" }}
+      >
+        <div className="dots absolute inset-0 [mask-image:radial-gradient(70%_60%_at_50%_30%,#000,transparent)]" />
+        <Orbits />
 
-        <motion.div
-          style={{ opacity: introOpacity, y: introY }}
-          className="pointer-events-none absolute inset-x-0 bottom-0 mx-auto flex max-w-[1440px] flex-col gap-10 px-6 pb-10 md:flex-row md:items-end md:justify-between md:px-12 md:pb-14"
-        >
-          <h1 className="display text-[clamp(2.1rem,4.6vw,4.5rem)]">
-            {["Governance, risk", "and compliance —", "engineered as one."].map((l, i) => (
-              <span key={l} className="block overflow-hidden pb-[0.08em]">
-                <motion.span
-                  className={`block ${i === 2 ? "text-bone/55" : ""}`}
-                  initial={{ y: "105%" }}
-                  animate={{ y: 0 }}
-                  transition={{ duration: 1.6, ease: EASE, delay: 0.9 + i * 0.1 }}
-                >
-                  {l}
-                </motion.span>
-              </span>
-            ))}
-          </h1>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 1.6, delay: 1.6 }}
-            className="flex max-w-[19rem] flex-col gap-8 md:items-end md:text-right"
+        <div className="relative mx-auto flex max-w-5xl flex-col items-center px-6 pt-32 text-center md:pt-36">
+          <motion.a
+            href="#results"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: EASE, delay: 0.2 }}
+            className="group inline-flex items-center gap-2.5 rounded-full bg-white/10 py-1.5 pl-1.5 pr-4 text-[13px] font-medium ring-1 ring-inset ring-white/20 backdrop-blur-md transition-colors hover:bg-white/15"
           >
-            <p className="text-[14px] leading-relaxed text-bone/60">
-              Independent GRC advisory for boards, risk leaders and the regulated enterprises they steward.
-            </p>
-            <span className="eyebrow flex items-center gap-4 !text-[10px] text-bone/50">
-              Scroll to enter
-              <span className="relative block h-8 w-px overflow-hidden bg-bone/15">
-                <motion.span
-                  className="absolute inset-x-0 top-0 h-3 bg-gold"
-                  animate={{ y: ["-100%", "300%"] }}
-                  transition={{ duration: 2.2, repeat: Infinity, ease: [0.65, 0, 0.35, 1] }}
-                />
-              </span>
-            </span>
-          </motion.div>
-        </motion.div>
+            <span className="rounded-full bg-gold px-2.5 py-1 text-[11px] font-bold text-ink">New</span>
+            AI governance practice — ISO 42001
+            <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
+          </motion.a>
 
-        {/* What you arrive at once you pass through the mark */}
-        <motion.div
-          style={{ opacity: outroOpacity, scale: outroScale }}
-          className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-6 text-center"
-        >
-          <p className="eyebrow mb-8 text-gold">TripleArc GRC Solutions</p>
-          <motion.p style={{ letterSpacing: outroSpacing }} className="display max-w-4xl text-[clamp(2.4rem,6vw,6rem)]">
-            Three disciplines.
-            <br />
-            <span className="text-bone/55">One structure.</span>
+          <h1 className="h-display mt-7 text-[clamp(2.6rem,6.2vw,5.4rem)]">
+            <BlurWords text="Governance, risk &" delay={0.3} />
+            <br className="hidden sm:block" />
+            <BlurWords text="compliance," delay={0.5} />
+            <BlurWords text="made clear." delay={0.62} className="text-white/55" />
+          </h1>
+
+          <motion.p
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.9, ease: EASE, delay: 0.8 }}
+            className="mt-6 max-w-xl text-[16px] leading-relaxed text-white/70 md:text-[17px]"
+          >
+            One structure for every obligation, control and piece of evidence — so your board sees risk early and your audits become routine.
           </motion.p>
-        </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.9, ease: EASE, delay: 0.95 }}
+            className="mt-8 flex flex-wrap items-center justify-center gap-3"
+          >
+            <Button href="#contact" variant="white">
+              Book a consultation
+            </Button>
+            <Button href="#process" variant="ghost">
+              See how it works
+            </Button>
+          </motion.div>
+        </div>
+
+        {/* dashboard composition rising out of the bottom edge */}
+        <div className="relative mx-auto mt-16 grid max-w-[980px] grid-cols-1 items-end gap-4 px-6 sm:grid-cols-3 md:mt-14 md:gap-5">
+          <Float mx={mx} my={my} depth={-26} delay={1.0} className="hidden sm:block sm:translate-y-10">
+            <Heatmap />
+          </Float>
+          <Float mx={mx} my={my} depth={-44} delay={0.85} className="sm:translate-y-4">
+            <ScoreRing />
+          </Float>
+          <Float mx={mx} my={my} depth={-26} delay={1.15} className="hidden sm:block sm:translate-y-12">
+            <Controls />
+          </Float>
+        </div>
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#081a3a] to-transparent" />
       </div>
     </section>
   );

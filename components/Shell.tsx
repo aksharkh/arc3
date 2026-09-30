@@ -1,80 +1,111 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { ReactLenis } from "lenis/react";
-import { motion } from "motion/react";
-import { EASE, Mark, Wordmark } from "./ui";
-import { bindPointer } from "@/lib/store";
+import { AnimatePresence, motion, useMotionValueEvent, useScroll, useSpring } from "motion/react";
+import { Arrow, EASE, Logo } from "./ui";
 
 export function Shell({ children }: { children: ReactNode }) {
-  useEffect(bindPointer, []);
+  const { scrollYProgress } = useScroll();
+  const bar = useSpring(scrollYProgress, { stiffness: 140, damping: 28, mass: 0.4 });
   return (
-    <ReactLenis root options={{ lerp: 0.08, anchors: true }}>
+    <ReactLenis root options={{ lerp: 0.09, anchors: { offset: -96 } }}>
+      <motion.div style={{ scaleX: bar }} className="fixed inset-x-0 top-0 z-[60] h-[3px] origin-left bg-royal" />
       {children}
     </ReactLenis>
   );
 }
 
 const LINKS = [
-  { href: "#expertise", label: "Expertise" },
-  { href: "#approach", label: "Approach" },
-  { href: "#contact", label: "Contact" },
+  { href: "#services", label: "Services" },
+  { href: "#process", label: "Process" },
+  { href: "#results", label: "Results" },
+  { href: "#faq", label: "FAQ" },
 ];
 
-/** Minimal header that switches ink colour with the section beneath it. */
+/** Floating pill header; the hover highlight glides between links. */
 export function Nav() {
-  const [light, setLight] = useState(false);
-  const [hidden, setHidden] = useState(false);
-
-  useEffect(() => {
-    let last = window.scrollY;
-    const check = () => {
-      const y = window.scrollY;
-      if (Math.abs(y - last) > 4) {
-        setHidden(y > last && y > window.innerHeight * 0.5);
-        last = y;
-      }
-      const sections = document.querySelectorAll<HTMLElement>("[data-theme]");
-      for (const s of sections) {
-        const r = s.getBoundingClientRect();
-        if (r.top <= 40 && r.bottom > 40) {
-          setLight(s.dataset.theme === "light");
-          return;
-        }
-      }
-    };
-    check();
-    window.addEventListener("scroll", check, { passive: true });
-    return () => window.removeEventListener("scroll", check);
-  }, []);
+  const [hover, setHover] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  const [compact, setCompact] = useState(false);
+  const { scrollY } = useScroll();
+  useMotionValueEvent(scrollY, "change", (v) => setCompact(v > 40));
 
   return (
     <motion.header
-      initial={{ opacity: 0, y: -12 }}
-      animate={{ opacity: hidden ? 0 : 1, y: hidden ? -24 : 0 }}
-      transition={{ duration: hidden ? 0.5 : 1.1, ease: EASE }}
-      className={`fixed inset-x-0 top-0 z-50 transition-colors duration-700 ${light ? "text-ink" : "text-bone"} ${hidden ? "pointer-events-none" : ""}`}
+      initial={{ y: -80, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 1, ease: EASE, delay: 0.1 }}
+      className="fixed inset-x-0 top-4 z-50 px-4"
     >
-      <div className="mx-auto flex h-20 max-w-[1440px] items-center justify-between px-6 md:h-24 md:px-12">
-        <a href="#top" className="flex items-center gap-3" aria-label="TripleArc — home">
-          <Mark className="h-7 w-7 text-gold" width={0.11} />
-          <span className="text-[12px] font-medium">
-            <Wordmark />
-          </span>
+      <div
+        className={`mx-auto flex h-16 items-center justify-between rounded-full border border-white/60 bg-white/90 pl-4 pr-2 shadow-soft backdrop-blur-xl transition-[max-width] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+          compact ? "max-w-[860px]" : "max-w-[1280px]"
+        }`}
+      >
+        <a href="#top" aria-label="TripleArc — home">
+          <Logo />
         </a>
-        <nav className="flex items-center gap-8 md:gap-12">
-          {LINKS.map((l, i) => (
+        <nav className="hidden items-center md:flex" onPointerLeave={() => setHover(null)}>
+          {LINKS.map((l) => (
             <a
               key={l.href}
               href={l.href}
-              className={`eyebrow group relative !text-[10.5px] ${i < 2 ? "hidden md:block" : ""}`}
+              onPointerEnter={() => setHover(l.href)}
+              className="relative px-4 py-2 text-[14px] font-medium text-slate transition-colors hover:text-ink"
             >
-              {l.label}
-              <span className="absolute -bottom-1.5 left-0 h-px w-full origin-right scale-x-0 bg-gold transition-transform duration-500 ease-out group-hover:origin-left group-hover:scale-x-100" />
+              {hover === l.href && (
+                <motion.span layoutId="nav-hover" className="absolute inset-0 rounded-full bg-sky" transition={{ type: "spring", stiffness: 400, damping: 32 }} />
+              )}
+              <span className="relative">{l.label}</span>
             </a>
           ))}
         </nav>
+        <div className="flex items-center gap-2">
+          <a
+            href="#contact"
+            className="group hidden h-12 items-center gap-2 rounded-full bg-ink px-5 text-[14px] font-semibold text-white transition-colors duration-300 hover:bg-royal sm:inline-flex"
+          >
+            Book a call
+            <Arrow className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+          </a>
+          <button
+            onClick={() => setOpen((o) => !o)}
+            aria-label={open ? "Close menu" : "Open menu"}
+            className="flex h-12 w-12 flex-col items-center justify-center gap-[5px] rounded-full bg-sky md:hidden"
+          >
+            <motion.span animate={open ? { rotate: 45, y: 3.5 } : { rotate: 0, y: 0 }} className="block h-[2px] w-5 rounded bg-ink" />
+            <motion.span animate={open ? { rotate: -45, y: -3.5 } : { rotate: 0, y: 0 }} className="block h-[2px] w-5 rounded bg-ink" />
+          </button>
+        </div>
       </div>
+
+      <AnimatePresence>
+        {open && (
+          <motion.nav
+            initial={{ opacity: 0, y: -12, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -12, scale: 0.97 }}
+            transition={{ duration: 0.35, ease: EASE }}
+            className="mx-auto mt-2 flex origin-top flex-col rounded-3xl border border-white/60 bg-white/95 p-3 shadow-lift backdrop-blur-xl md:hidden"
+          >
+            {[...LINKS, { href: "#contact", label: "Book a call" }].map((l, i) => (
+              <motion.a
+                key={l.href}
+                href={l.href}
+                onClick={() => setOpen(false)}
+                initial={{ opacity: 0, x: -12 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.05 * i, duration: 0.4, ease: EASE }}
+                className="flex items-center justify-between rounded-2xl px-4 py-3.5 text-[16px] font-semibold active:bg-sky"
+              >
+                {l.label}
+                <Arrow className="h-3.5 w-3.5 text-royal" />
+              </motion.a>
+            ))}
+          </motion.nav>
+        )}
+      </AnimatePresence>
     </motion.header>
   );
 }

@@ -1,47 +1,50 @@
 @import "tailwindcss";
 
 :root {
-  --ink: #07111f;
-  --navy: #0a1d2f;
+  --paper: #f5f7fb;
+  --card: #ffffff;
+  --ink: #0a1d2f;
+  --slate: #5b6878;
+  --line: #e4e9f1;
+  --sky: #e8f0fd;
   --royal: #0f4cb1;
   --ocean: #1677c9;
+  --deep: #081a3a;
   --gold: #d4af37;
-  --gold-muted: #c8a45a;
-  --bone: #f3f1ec;
-  --stone: #d9d5cc;
-  --graphite: #4a4f57;
 }
 
 @theme inline {
+  --color-paper: var(--paper);
+  --color-card: var(--card);
   --color-ink: var(--ink);
-  --color-navy: var(--navy);
+  --color-slate: var(--slate);
+  --color-line: var(--line);
+  --color-sky: var(--sky);
   --color-royal: var(--royal);
   --color-ocean: var(--ocean);
+  --color-deep: var(--deep);
   --color-gold: var(--gold);
-  --color-gold-muted: var(--gold-muted);
-  --color-bone: var(--bone);
-  --color-stone: var(--stone);
-  --color-graphite: var(--graphite);
   --font-sans: var(--font-sans);
+  --shadow-soft: 0 1px 2px rgba(10, 29, 47, 0.04), 0 12px 32px -12px rgba(10, 29, 47, 0.12);
+  --shadow-lift: 0 2px 4px rgba(10, 29, 47, 0.04), 0 32px 64px -24px rgba(10, 29, 47, 0.28);
 }
 
 html {
-  background: var(--ink);
-  color: var(--bone);
+  background: var(--paper);
+  color: var(--ink);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
 body {
-  background: var(--ink);
+  background: var(--paper);
   font-family: var(--font-sans), system-ui, sans-serif;
-  font-weight: 400;
   overflow-x: clip;
 }
 
 ::selection {
-  background: var(--gold);
-  color: var(--ink);
+  background: var(--royal);
+  color: #fff;
 }
 
 html.lenis,
@@ -52,17 +55,52 @@ html.lenis body {
   overflow: clip;
 }
 
-.eyebrow {
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
+.h-display {
+  font-weight: 600;
+  letter-spacing: -0.045em;
+  line-height: 1;
 }
 
-.display {
-  font-weight: 300;
-  letter-spacing: -0.035em;
-  line-height: 1.02;
+.tag {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* Cursor-following highlight on cards. --mx / --my are set from JS. */
+.spot {
+  position: relative;
+  isolation: isolate;
+}
+.spot::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 0.5s;
+  background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 50%), var(--spot, rgba(15, 76, 177, 0.1)), transparent 65%);
+}
+.spot:hover::before {
+  opacity: 1;
+}
+
+.marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee var(--dur, 40s) linear infinite;
+}
+.marquee:hover {
+  animation-play-state: paused;
+}
+@keyframes marquee {
+  to { transform: translateX(-50%); }
+}
+
+.dots {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.16) 1px, transparent 1px);
+  background-size: 28px 28px;
 }
 
 @media (prefers-reduced-motion: reduce) {

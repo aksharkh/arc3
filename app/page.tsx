@@ -1,6 +1,6 @@
 import { Nav, Shell } from "@/components/Shell";
 import Hero from "@/components/Hero";
-import { Approach, Contact, Expand, Expertise, Footer, Statement } from "@/components/Sections";
+import { Bento, Cta, Faq, Footer, Frameworks, Process, Results } from "@/components/Sections";
 
 export default function Home() {
   return (
@@ -8,11 +8,12 @@ export default function Home() {
       <Nav />
       <main>
         <Hero />
-        <Statement />
-        <Expand />
-        <Expertise />
-        <Approach />
-        <Contact />
+        <Frameworks />
+        <Bento />
+        <Process />
+        <Results />
+        <Faq />
+        <Cta />
       </main>
       <Footer />
     </Shell>
