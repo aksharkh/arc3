@@ -1,106 +1,53 @@
 @import "tailwindcss";
 
 :root {
-  --paper: #f5f7fb;
-  --card: #ffffff;
-  --ink: #0a1d2f;
-  --slate: #5b6878;
-  --line: #e4e9f1;
-  --sky: #e8f0fd;
+  --ink: #07111f;
+  --navy: #0a1d2f;
   --royal: #0f4cb1;
-  --ocean: #1677c9;
-  --deep: #081a3a;
+  --ice: #e6eefb;
+  --bone: #f1efe9;
   --gold: #d4af37;
 }
 
 @theme inline {
-  --color-paper: var(--paper);
-  --color-card: var(--card);
   --color-ink: var(--ink);
-  --color-slate: var(--slate);
-  --color-line: var(--line);
-  --color-sky: var(--sky);
+  --color-navy: var(--navy);
   --color-royal: var(--royal);
-  --color-ocean: var(--ocean);
-  --color-deep: var(--deep);
+  --color-ice: var(--ice);
+  --color-bone: var(--bone);
   --color-gold: var(--gold);
   --font-sans: var(--font-sans);
-  --shadow-soft: 0 1px 2px rgba(10, 29, 47, 0.04), 0 12px 32px -12px rgba(10, 29, 47, 0.12);
-  --shadow-lift: 0 2px 4px rgba(10, 29, 47, 0.04), 0 32px 64px -24px rgba(10, 29, 47, 0.28);
 }
 
-html {
-  background: var(--paper);
-  color: var(--ink);
+/* The whole site is one fixed screen; chapters change in place. */
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: var(--ink);
+  color: var(--bone);
+  font-family: var(--font-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-}
-
-body {
-  background: var(--paper);
-  font-family: var(--font-sans), system-ui, sans-serif;
-  overflow-x: clip;
+  touch-action: none;
 }
 
 ::selection {
-  background: var(--royal);
-  color: #fff;
+  background: var(--gold);
+  color: var(--ink);
 }
 
-html.lenis,
-html.lenis body {
-  height: auto;
-}
-.lenis:not(.lenis-autoToggle).lenis-stopped {
-  overflow: clip;
-}
-
-.h-display {
+.meta {
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: -0.045em;
-  line-height: 1;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-variation-settings: "wdth" 100;
 }
 
-.tag {
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-}
-
-/* Cursor-following highlight on cards. --mx / --my are set from JS. */
-.spot {
-  position: relative;
-  isolation: isolate;
-}
-.spot::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: inherit;
-  opacity: 0;
-  transition: opacity 0.5s;
-  background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 50%), var(--spot, rgba(15, 76, 177, 0.1)), transparent 65%);
-}
-.spot:hover::before {
-  opacity: 1;
-}
-
-.marquee {
-  display: flex;
-  width: max-content;
-  animation: marquee var(--dur, 40s) linear infinite;
-}
-.marquee:hover {
-  animation-play-state: paused;
-}
-@keyframes marquee {
-  to { transform: translateX(-50%); }
-}
-
-.dots {
-  background-image: radial-gradient(rgba(255, 255, 255, 0.16) 1px, transparent 1px);
-  background-size: 28px 28px;
+.condensed {
+  font-variation-settings: "wdth" 62;
 }
 
 @media (prefers-reduced-motion: reduce) {

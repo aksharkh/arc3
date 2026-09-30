@@ -1,21 +1,21 @@
 import type { Metadata, Viewport } from "next";
-import { Manrope } from "next/font/google";
+import { Archivo } from "next/font/google";
 import "./globals.css";
 
-const sans = Manrope({
+// Variable on both weight and width — the titles lean on the width axis.
+const sans = Archivo({
   variable: "--font-sans",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  axes: ["wdth"],
 });
 
 export const metadata: Metadata = {
-  title: "TripleArc — Governance, Risk & Compliance, made clear",
-  description:
-    "TripleArc GRC Solutions unifies governance, risk and compliance into one clear structure for regulated enterprises.",
+  title: "TripleArc — Governance · Risk · Compliance",
+  description: "Turn the dial. TripleArc GRC Solutions holds governance, risk and compliance in one structure.",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f5f7fb",
+  themeColor: "#07111f",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
